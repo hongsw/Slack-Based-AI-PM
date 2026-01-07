@@ -1,0 +1,11 @@
+{
+  "/Users/hongmartin/dev/Slack-Based-AI-PM": {
+    "path": "/Users/hongmartin/dev/Slack-Based-AI-PM",
+    "branch": "refs/heads/continuous-claude/iteration-4/2026-01-08-0158f42f",
+    "agentType": "claude",
+    "created": "2026-01-07T17:33:57.287Z",
+    "lastAccessed": "2026-01-07T17:33:57.328Z",
+    "isDirty": true,
+    "lastCommitSHA": "a7bd46c7384f4a242bea864b2bd41cf27574ee64"
+  }
+}
