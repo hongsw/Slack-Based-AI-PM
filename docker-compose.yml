@@ -1,0 +1,78 @@
+version: "3.8"
+
+services:
+  # TrendRadar MCP Server - Core infrastructure for monitoring and Slack integration
+  trendradar-mcp:
+    image: wantcat/trendradar-mcp
+    container_name: slack-ai-pm-mcp
+    ports:
+      - "3333:3333"
+    volumes:
+      - ./data/output:/app/output
+      - ./data/pm:/app/output/pm
+    environment:
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL}
+      - SLACK_CHANNEL=${SLACK_CHANNEL:-#pm-updates}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      # Optional: R2/S3 for remote storage
+      - R2_ACCOUNT_ID=${R2_ACCOUNT_ID:-}
+      - R2_ACCESS_KEY=${R2_ACCESS_KEY:-}
+      - R2_SECRET_KEY=${R2_SECRET_KEY:-}
+      - R2_BUCKET=${R2_BUCKET:-}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3333/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - pm-network
+
+  # SQLite database browser for PM task inspection (optional, development only)
+  sqlite-web:
+    image: coleifer/sqlite-web
+    container_name: slack-ai-pm-db-viewer
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data/pm:/data
+    environment:
+      - SQLITE_DATABASE=/data/tasks.db
+    depends_on:
+      - trendradar-mcp
+    profiles:
+      - dev
+    networks:
+      - pm-network
+
+  # Scheduled task runner for daily reports and periodic checks
+  scheduler:
+    image: mcuadros/ofelia:latest
+    container_name: slack-ai-pm-scheduler
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./scheduler:/etc/ofelia
+    depends_on:
+      - trendradar-mcp
+    labels:
+      ofelia.enabled: "true"
+      # Daily task review at 9 AM PT (5 PM UTC)
+      ofelia.job-exec.daily-review.schedule: "0 0 17 * * 1-5"
+      ofelia.job-exec.daily-review.container: "slack-ai-pm-mcp"
+      ofelia.job-exec.daily-review.command: "python manage.py run_workflow daily-task-review"
+      # EOD verification sweep at 5 PM PT (1 AM UTC next day)
+      ofelia.job-exec.eod-verify.schedule: "0 0 1 * * 2-6"
+      ofelia.job-exec.eod-verify.container: "slack-ai-pm-mcp"
+      ofelia.job-exec.eod-verify.command: "python manage.py run_workflow task-completion-verification --sweep"
+    restart: unless-stopped
+    networks:
+      - pm-network
+
+networks:
+  pm-network:
+    driver: bridge
+
+volumes:
+  pm-data:
+    driver: local
