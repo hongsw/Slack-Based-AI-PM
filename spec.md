@@ -122,6 +122,12 @@ MCP (Model Context Protocol) serves as the unified communication layer between a
 │  ├── Comparison: compare_periods (WoW/MoM analysis)             │
 │  └── Storage: sync_from_remote, get_storage_status              │
 ├─────────────────────────────────────────────────────────────────┤
+│  PM Tools MCP Server (http://localhost:3334)                    │
+│  ├── Task CRUD: create_task, get_task_by_id, get_task_progress  │
+│  ├── Status: update_task_status (with verification records)     │
+│  ├── Reporting: generate_boss_report (daily/weekly/custom)      │
+│  └── Slack: push_to_slack (webhook wrapper)                     │
+├─────────────────────────────────────────────────────────────────┤
 │  oh-my-opencode Curated MCPs                                    │
 │  ├── Exa (web search)                                           │
 │  ├── Context7 (official documentation)                          │
@@ -147,9 +153,26 @@ MCP (Model Context Protocol) serves as the unified communication layer between a
 | `sync_from_remote` | Sync from S3/R2 storage | `bucket`, `prefix` | Sync status |
 | `get_storage_status` | Check storage health | None | Storage metrics |
 
-### 6.3 MCP Configuration
+### 6.3 PM Tools MCP Reference
 
-**TrendRadar MCP Server Setup** (`docker-compose.yml`):
+Custom PM-specific tools for task management, verification, and Slack integration.
+
+| Tool Name | Purpose | Parameters | Returns |
+|-----------|---------|------------|---------|
+| `create_task` | Create new PM task | `title`, `description`, `slack_channel`, `priority?`, `due_date?`, `assignee?`, `tags?` | Task object with ID |
+| `update_task_status` | Update status + verification | `task_id`, `status`, `verification?`, `progress_note?` | Updated task object |
+| `get_task_progress` | Query tasks with updates | `task_id?`, `status_filter?`, `include_updates?`, `limit?` | Tasks array + summary |
+| `get_task_by_id` | Get single task details | `task_id` | Task with updates + verification |
+| `generate_boss_report` | Generate formatted report | `report_type`, `date_range?`, `include_metrics?` | Report object |
+| `push_to_slack` | Send Slack message | `message` (Block Kit), `channel?`, `thread_ts?` | Push result |
+
+**Status Values**: `defined`, `in_progress`, `review`, `completed`, `blocked`
+
+**Report Types**: `daily`, `weekly`, `custom`
+
+### 6.4 MCP Configuration
+
+**Full Docker Stack** (`docker-compose.yml`):
 ```yaml
 services:
   trendradar-mcp:
@@ -157,9 +180,19 @@ services:
     ports:
       - "3333:3333"
     volumes:
-      - ./output:/app/output
+      - ./data/output:/app/output
     environment:
       - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL}
+
+  pm-tools:
+    build: ./mcp-tools
+    ports:
+      - "3334:3334"
+    volumes:
+      - ./data/pm:/app/output/pm
+    environment:
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL}
+      - PM_DATABASE_PATH=/app/output/pm/tasks.db
 ```
 
 **cc-wf-studio MCP Configuration** (`.claude/settings.json`):
@@ -168,7 +201,11 @@ services:
   "mcpServers": {
     "trendradar": {
       "url": "http://localhost:3333/mcp",
-      "description": "PM workflow monitoring and Slack integration"
+      "description": "News monitoring and sentiment analysis"
+    },
+    "pm-tools": {
+      "url": "http://localhost:3334",
+      "description": "PM task management, reports, and Slack integration"
     }
   }
 }
@@ -180,6 +217,9 @@ services:
 mcp:
   trendradar:
     endpoint: http://localhost:3333/mcp
+    enabled: true
+  pm-tools:
+    endpoint: http://localhost:3334
     enabled: true
   context7:
     enabled: true  # Built-in

@@ -141,13 +141,13 @@ input: |
 ```
 
 ### Step 6: Update Task Status
-**Type:** MCP Tool (Custom PM Tool)
+**Type:** MCP Tool (PM Tools)
 
 Update the task record with verification results.
 
 ```json
 {
-  "server": "trendradar",
+  "server": "pm-tools",
   "tool": "update_task_status",
   "parameters": {
     "task_id": "{{task_id}}",
@@ -169,7 +169,7 @@ Notify the team of verification results.
 
 ```json
 {
-  "server": "trendradar",
+  "server": "pm-tools",
   "tool": "push_to_slack",
   "parameters": {
     "channel": "{{slack_channel}}",

@@ -29,6 +29,30 @@ services:
     networks:
       - pm-network
 
+  # PM MCP Tools Server - Custom PM tools (task CRUD, reports, Slack push)
+  pm-tools:
+    build:
+      context: ./mcp-tools
+      dockerfile: Dockerfile
+    container_name: slack-ai-pm-tools
+    ports:
+      - "3334:3334"
+    volumes:
+      - ./data/pm:/app/output/pm
+    environment:
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL}
+      - PM_DATABASE_PATH=/app/output/pm/tasks.db
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3334/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+    networks:
+      - pm-network
+
   # SQLite database browser for PM task inspection (optional, development only)
   sqlite-web:
     image: coleifer/sqlite-web
@@ -40,7 +64,7 @@ services:
     environment:
       - SQLITE_DATABASE=/data/tasks.db
     depends_on:
-      - trendradar-mcp
+      - pm-tools
     profiles:
       - dev
     networks:
@@ -55,6 +79,7 @@ services:
       - ./scheduler:/etc/ofelia
     depends_on:
       - trendradar-mcp
+      - pm-tools
     labels:
       ofelia.enabled: "true"
       # Daily task review at 9 AM PT (5 PM UTC)

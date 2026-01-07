@@ -126,7 +126,7 @@ Send the daily report to Slack.
 
 ```json
 {
-  "server": "trendradar",
+  "server": "pm-tools",
   "tool": "push_to_slack",
   "parameters": {
     "channel": "{{slack_channel}}",
