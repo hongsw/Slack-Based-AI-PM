@@ -1,27 +1,29 @@
 # SHARED_TASK_NOTES.md
 
 ## Current State
-spec.md has been expanded from 7 sections to 13 sections with detailed specifications for:
-- MCP integration (tools reference, configuration)
-- Workflow node definitions (JSON schemas)
-- Data model & storage (TypeScript interfaces, SQLite schema)
-- Error handling & recovery patterns
-- oh-my-opencode agent integration details
-- Slack message formats and webhook config
+- spec.md: 13 sections with detailed specifications
+- `.claude/agents/`: Contains 2 workflow templates
+  - `daily-task-review.md` - Daily status report generation workflow
+  - `task-completion-verification.md` - Task verification workflow with sentiment analysis
+- `.claude/commands/`: Directory created, awaiting slash command definitions
 
 ## Next Steps (Priority Order)
 
-1. **Create example workflow files** - Build actual `.claude` workflow files for the PM templates described in spec.md (Daily Task Review, Task Completion Verification)
+1. **Add docker-compose.yml** - Create complete Docker Compose for full stack (TrendRadar + MCP)
 
-2. **Add docker-compose.yml** - Create a complete Docker Compose file that spins up the full stack (TrendRadar + MCP server)
+2. **Create .env.example** - Environment template with all required variables
 
-3. **Create environment template** - Add `.env.example` with all required environment variables
-
-4. **Build custom MCP tools** - The spec describes PM-specific use cases, but TrendRadar's tools are news-focused. May need custom PM tools:
+3. **Build custom PM MCP tools** - TrendRadar's tools are news-focused. Need PM-specific tools:
    - `create_task` - Create a new PM task
-   - `update_task_status` - Update task status
+   - `update_task_status` - Update task status (referenced in task-completion-verification)
    - `get_task_progress` - Get task progress updates
    - `generate_boss_report` - Generate formatted report
+   - `push_to_slack` - Send formatted Slack messages (wrapper for webhook)
+
+4. **Add slash commands** - Populate `.claude/commands/` with:
+   - `/pm verify <task_id>` - Manual task verification trigger
+   - `/pm status` - Quick status check
+   - `/pm report` - Generate on-demand report
 
 5. **Add GitHub Actions workflow** - For scheduled PM report generation
 
@@ -31,6 +33,7 @@ spec.md has been expanded from 7 sections to 13 sections with detailed specifica
 - What's the authentication flow for oh-my-opencode model subscriptions?
 
 ## Notes
-- TrendRadar tools are news/trend focused - the spec adapts them for PM but custom tools would be cleaner
-- oh-my-opencode uses `ultrawork` magic word to enable all features
+- Workflow files use markdown format with embedded YAML/JSON for node configs
 - cc-wf-studio exports to `.claude/agents/` and `.claude/commands/`
+- oh-my-opencode uses `ultrawork` magic word to enable all features
+- Workflows reference custom MCP tools (`update_task_status`, `push_to_slack`) that don't exist yet in TrendRadar
